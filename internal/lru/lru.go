@@ -23,6 +23,11 @@ func NewLRULinkedList() LinkedList {
 }
 
 func (l *LinkedList) Remove(node *Node) {
+	if node.Prev == nil || node.Next == nil {
+
+		return
+	}
+
 	node.Prev.Next = node.Next
 	node.Next.Prev = node.Prev
 }
@@ -36,6 +41,10 @@ func (l *LinkedList) InsertAtHead(node *Node) {
 }
 
 func (l *LinkedList) MoveToHead(node *Node) {
+	if node.Prev == nil || node.Next == nil {
+
+		return
+	}
 	l.Remove(node)
 	l.InsertAtHead(node)
 }

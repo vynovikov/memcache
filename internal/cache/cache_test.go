@@ -845,51 +845,6 @@ func (s *cacheSuite) TestWork() {
 	}
 }
 
-func (c *TTLLRUCacheShard) getState() ([]keyValue, []string, []string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	gotLRUL := []string{"HEAD"}
-	gotTTLH := make([]string, 0)
-	gotData := make([]keyValue, 0)
-	LRUNode := c.LRULL.Head
-
-	// 1. LRU linked list
-	for LRUNode.Next.Next != nil {
-		LRUNode = LRUNode.Next
-		gotLRUL = append(gotLRUL, LRUNode.Key)
-	}
-	gotLRUL = append(gotLRUL, "TAIL")
-
-	// 2. TTL heap
-	for _, TTLNode := range c.TTLH.Nodes {
-		gotTTLH = append(gotTTLH, TTLNode.Key)
-	}
-
-	// 3.0 Key-value-TTL slice
-	for gotKey, gotValue := range c.data {
-		gotData = append(gotData,
-			keyValue{
-				Key:   gotKey,
-				Value: gotValue.Value,
-			},
-		)
-	}
-
-	// 3.1 Sorting slice
-	slices.SortFunc(gotData, func(a, b keyValue) int {
-		if a.Key < b.Key {
-			return -1
-		}
-		if a.Key > b.Key {
-			return 1
-		}
-		return 0
-	})
-
-	return gotData, gotLRUL, gotTTLH
-}
-
 func (s *cacheSuite) TestSharded() {
 	tt := []struct {
 		name         string
@@ -1054,4 +1009,49 @@ func (s *cacheSuite) TestSharded() {
 			s.Equal(v.wantData, gotData)
 		})
 	}
+}
+
+func (c *TTLLRUCacheShard) getState() ([]keyValue, []string, []string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	gotLRUL := []string{"HEAD"}
+	gotTTLH := make([]string, 0)
+	gotData := make([]keyValue, 0)
+	LRUNode := c.LRULL.Head
+
+	// 1. LRU linked list
+	for LRUNode.Next.Next != nil {
+		LRUNode = LRUNode.Next
+		gotLRUL = append(gotLRUL, LRUNode.Key)
+	}
+	gotLRUL = append(gotLRUL, "TAIL")
+
+	// 2. TTL heap
+	for _, TTLNode := range c.TTLH.Nodes {
+		gotTTLH = append(gotTTLH, TTLNode.Key)
+	}
+
+	// 3.0 Key-value-TTL slice
+	for gotKey, gotValue := range c.data {
+		gotData = append(gotData,
+			keyValue{
+				Key:   gotKey,
+				Value: gotValue.Value,
+			},
+		)
+	}
+
+	// 3.1 Sorting slice
+	slices.SortFunc(gotData, func(a, b keyValue) int {
+		if a.Key < b.Key {
+			return -1
+		}
+		if a.Key > b.Key {
+			return 1
+		}
+		return 0
+	})
+
+	return gotData, gotLRUL, gotTTLH
 }
