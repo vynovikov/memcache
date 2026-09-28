@@ -50,7 +50,60 @@ func (s *cacheSuite) TestSet() {
 		wantTTLH     []keyExpireIn
 	}{
 		{
-			name:         "0. Empty cache",
+			name:         "0. Key length == 0. Doing nothing",
+			cap:          5,
+			minTickMilli: 500,
+			initialData:  []keyValueTTL{},
+			addData: keyValueTTL{
+				Key:   "",
+				Value: "value0",
+				TTL:   5 * time.Second,
+			},
+			wantData: []keyValueTTL{},
+			wantLRUL: []string{"HEAD", "TAIL"},
+			wantTTLH: []keyExpireIn{},
+		},
+		{
+			name:         "1. value == nil. Doing nothing",
+			cap:          5,
+			minTickMilli: 500,
+			initialData:  []keyValueTTL{},
+			addData: keyValueTTL{
+				Key:   "key10",
+				Value: nil,
+				TTL:   5 * time.Second,
+			},
+			wantData: []keyValueTTL{},
+			wantLRUL: []string{"HEAD", "TAIL"},
+			wantTTLH: []keyExpireIn{},
+		},
+		{
+			name:         "2. TTL == 0. Set TTL to minTick",
+			cap:          5,
+			minTickMilli: 500,
+			initialData:  []keyValueTTL{},
+			addData: keyValueTTL{
+				Key:   "key20",
+				Value: "value20",
+				TTL:   0,
+			},
+			wantData: []keyValueTTL{
+				{
+					Key:   "key20",
+					Value: "value20",
+					TTL:   500 * time.Millisecond,
+				},
+			},
+			wantLRUL: []string{"HEAD", "key20", "TAIL"},
+			wantTTLH: []keyExpireIn{
+				{
+					Key:      "key20",
+					ExpireIn: 500 * time.Millisecond,
+				},
+			},
+		},
+		{
+			name:         "3. Empty cache",
 			cap:          5,
 			minTickMilli: 500,
 			initialData:  []keyValueTTL{},
@@ -75,63 +128,63 @@ func (s *cacheSuite) TestSet() {
 			},
 		},
 		{
-			name:         "1. Prefilled cache. Adding more data. Same TTL",
+			name:         "4. Prefilled cache. Adding more data. Same TTL",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
 				{
 					Key:   "key00",
 					Value: "value00",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 				{
 					Key:   "key01",
 					Value: "value01",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 				{
 					Key:   "key10",
 					Value: "value10",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 			},
 			addData: keyValueTTL{
 				Key:   "key11",
 				Value: "value11",
-				TTL:   5 * time.Second,
+				TTL:   800 * time.Millisecond,
 			},
 			wantData: []keyValueTTL{
 				{
 					Key:   "key00",
 					Value: "value00",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 				{
 					Key:   "key01",
 					Value: "value01",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 				{
 					Key:   "key10",
 					Value: "value10",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 				{
 					Key:   "key11",
 					Value: "value11",
-					TTL:   5 * time.Second,
+					TTL:   800 * time.Millisecond,
 				},
 			},
 			wantLRUL: []string{"HEAD", "key11", "key10", "key01", "key00", "TAIL"},
 			wantTTLH: []keyExpireIn{
-				{Key: "key00", ExpireIn: 5 * time.Second},
-				{Key: "key01", ExpireIn: 5 * time.Second},
-				{Key: "key10", ExpireIn: 5 * time.Second},
-				{Key: "key11", ExpireIn: 5 * time.Second},
+				{Key: "key00", ExpireIn: 800 * time.Millisecond},
+				{Key: "key01", ExpireIn: 800 * time.Millisecond},
+				{Key: "key10", ExpireIn: 800 * time.Millisecond},
+				{Key: "key11", ExpireIn: 800 * time.Millisecond},
 			},
 		},
 		{
-			name:         "2. Prefilled cache. Adding more data. Different TTL",
+			name:         "5. Prefilled cache. Adding more data. Different TTL",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
@@ -187,7 +240,7 @@ func (s *cacheSuite) TestSet() {
 			},
 		},
 		{
-			name:         "3. Same key added. Should move to the head",
+			name:         "6. Same key added. Should move to the head",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
@@ -237,7 +290,57 @@ func (s *cacheSuite) TestSet() {
 			},
 		},
 		{
-			name:         "4. Capacity exceeded",
+			name:         "7. Same key added. Should move to the head",
+			cap:          5,
+			minTickMilli: 500,
+			initialData: []keyValueTTL{
+				{
+					Key:   "key00",
+					Value: "value00",
+					TTL:   8 * time.Second,
+				},
+				{
+					Key:   "key01",
+					Value: "value01",
+					TTL:   8 * time.Second,
+				},
+				{
+					Key:   "key10",
+					Value: "value10",
+					TTL:   8 * time.Second,
+				},
+			},
+			addData: keyValueTTL{
+				Key:   "key00",
+				Value: "value02",
+				TTL:   8 * time.Second,
+			},
+			wantData: []keyValueTTL{
+				{
+					Key:   "key00",
+					Value: "value02",
+					TTL:   8 * time.Second,
+				},
+				{
+					Key:   "key01",
+					Value: "value01",
+					TTL:   8 * time.Second,
+				},
+				{
+					Key:   "key10",
+					Value: "value10",
+					TTL:   8 * time.Second,
+				},
+			},
+			wantLRUL: []string{"HEAD", "key00", "key10", "key01", "TAIL"},
+			wantTTLH: []keyExpireIn{
+				{Key: "key01", ExpireIn: 8 * time.Second},
+				{Key: "key10", ExpireIn: 8 * time.Second},
+				{Key: "key00", ExpireIn: 8 * time.Second},
+			},
+		},
+		{
+			name:         "8. Capacity exceeded",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
@@ -336,7 +439,7 @@ func (s *cacheSuite) TestSet() {
 					keyValueTTL{
 						Key:   gotKey,
 						Value: gotValue.Value,
-						TTL:   time.Until(gotValue.TTLElem.ExpireAt).Round(time.Second),
+						TTL:   time.Until(gotValue.TTLElem.ExpireAt).Round(100 * time.Millisecond),
 					},
 				)
 			}
@@ -373,7 +476,7 @@ func (s *cacheSuite) TestSet() {
 			for _, TTLNode := range cache.TTLH.Nodes {
 				keyExpireInUnit := keyExpireIn{
 					Key:      TTLNode.Key,
-					ExpireIn: time.Until(TTLNode.ExpireAt).Round(time.Second),
+					ExpireIn: time.Until(TTLNode.ExpireAt).Round(100 * time.Millisecond),
 				}
 				gotTTLH = append(gotTTLH, keyExpireInUnit)
 			}

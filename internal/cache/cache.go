@@ -110,6 +110,15 @@ func NewCacheSharded(totalCap int, requestedShards int, minTickMilli int) *Shard
 }
 
 func (c *TTLLRUCacheShard) set(key string, value any, ttl time.Duration) {
+	if len(key) == 0 || value == nil {
+
+		return
+	}
+
+	if ttl == 0 {
+		ttl = c.minTick
+	}
+
 	c.mu.Lock()
 
 	if oldCacheNode, ok := c.data[key]; ok {
