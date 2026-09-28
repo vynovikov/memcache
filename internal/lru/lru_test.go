@@ -237,6 +237,74 @@ func (s *lruSuite) TestMoveToHead() {
 	}
 }
 
+func (s *lruSuite) TestRemoveTail() {
+	tt := []struct {
+		name     string
+		addNodes []*Node
+		wantKey  string
+		wantLL   []string
+	}{
+		{
+			name: "0. One inserted",
+			addNodes: []*Node{
+				{
+					Key: "key00",
+				},
+			},
+			wantKey: "key00",
+			wantLL: []string{
+				"HEAD", "TAIL",
+			},
+		},
+		{
+			name: "1. Some inserted",
+			addNodes: []*Node{
+				{
+					Key: "key00",
+				},
+				{
+					Key: "key01",
+				},
+				{
+					Key: "key02",
+				},
+			},
+			wantKey: "key00",
+			wantLL: []string{
+				"HEAD", "key02", "key01", "TAIL",
+			},
+		},
+		{
+			name:     "2. None inserted",
+			addNodes: []*Node{},
+			wantKey:  "",
+			wantLL: []string{
+				"HEAD", "TAIL",
+			},
+		},
+	}
+	for _, v := range tt {
+		s.Run(v.name, func() {
+			// 0. Initialize linkedList
+			linkedList := NewLRULinkedList()
+
+			// 1. Populate
+			for _, node := range v.addNodes {
+				linkedList.InsertAtHead(node)
+			}
+
+			// 2. RemoveTail
+			linkedList.RemoveTail()
+
+			// 3. Retreiving linkedList footprint
+			gotLL := linkedList.getState()
+
+			// 4. Comparing results
+			s.Equal(v.wantLL, gotLL)
+		})
+	}
+}
+
 func (l *LinkedList) getState() []string {
 	gotLL := []string{"HEAD"}
 	LRUNode := l.Head

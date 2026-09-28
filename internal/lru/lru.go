@@ -52,6 +52,10 @@ func (l *LinkedList) MoveToHead(node *Node) {
 func (l *LinkedList) RemoveTail() string {
 	tailPrevKey := l.Tail.Prev.Key
 
+	if len(tailPrevKey) == 0 { // tail.Prev is head
+		return ""
+	}
+
 	l.Remove(l.Tail.Prev)
 
 	return tailPrevKey
