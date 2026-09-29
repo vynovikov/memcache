@@ -183,6 +183,11 @@ func (s *ShardedCache) Set(key string, value any, ttl time.Duration) {
 }
 
 func (c *TTLLRUCacheShard) get(key string) (value any, exists bool) {
+	if len(key) == 0 {
+
+		return nil, false
+	}
+
 	c.mu.Lock()
 
 	if foundCacheNode, ok := c.data[key]; ok {

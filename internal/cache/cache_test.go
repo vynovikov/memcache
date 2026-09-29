@@ -524,7 +524,55 @@ func (s *cacheSuite) TestGet() {
 		wantTTLH     []keyExpireIn
 	}{
 		{
-			name:         "0. Key is present",
+			name:         "0. No key passed",
+			cap:          5,
+			minTickMilli: 500,
+			initialData: []keyValueTTL{
+				{
+					Key:   "key00",
+					Value: "value00",
+					TTL:   8 * time.Second,
+				},
+				{
+					Key:   "key01",
+					Value: "value01",
+					TTL:   7 * time.Second,
+				},
+				{
+					Key:   "key02",
+					Value: "value02",
+					TTL:   6 * time.Second,
+				},
+			},
+			key:        "",
+			wantExists: false,
+			wantValue:  nil,
+			wantData: []keyValueTTL{
+				{
+					Key:   "key00",
+					Value: "value00",
+					TTL:   8 * time.Second,
+				},
+				{
+					Key:   "key01",
+					Value: "value01",
+					TTL:   7 * time.Second,
+				},
+				{
+					Key:   "key02",
+					Value: "value02",
+					TTL:   6 * time.Second,
+				},
+			},
+			wantLRUL: []string{"HEAD", "key02", "key01", "key00", "TAIL"},
+			wantTTLH: []keyExpireIn{
+				{Key: "key02", ExpireIn: 6 * time.Second},
+				{Key: "key01", ExpireIn: 7 * time.Second},
+				{Key: "key00", ExpireIn: 8 * time.Second},
+			},
+		},
+		{
+			name:         "1. Key is present",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
@@ -572,7 +620,7 @@ func (s *cacheSuite) TestGet() {
 			},
 		},
 		{
-			name:         "1. Key is absent",
+			name:         "2. Key is absent",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
@@ -620,7 +668,7 @@ func (s *cacheSuite) TestGet() {
 			},
 		},
 		{
-			name:         "2. Key is expired",
+			name:         "3. Key is expired",
 			cap:          5,
 			minTickMilli: 500,
 			initialData: []keyValueTTL{
