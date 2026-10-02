@@ -210,6 +210,7 @@ func (c *TTLLRUCacheShard) get(key string) (value any, exists bool) {
 	}
 
 	// not found
+	c.mu.Unlock()
 
 	return nil, false
 }
@@ -221,21 +222,16 @@ func (s *ShardedCache) Get(key string) (value any, exists bool) {
 }
 
 func (c *TTLLRUCacheShard) freeze() {
-	c.mu.Lock()
-
-	defer func() {
-		c.mu.Unlock()
-		<-c.doneChan
-	}()
 
 	select {
 	case <-c.freezeChan:
-
 		return
 	default:
 	}
 
 	close(c.freezeChan)
+
+	<-c.doneChan
 }
 
 func (s *ShardedCache) Freeze() {
@@ -246,7 +242,10 @@ func (s *ShardedCache) Freeze() {
 
 func (c *TTLLRUCacheShard) removeCacheExpired() (time.Duration, bool) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
+
+	defer func() {
+		c.mu.Unlock()
+	}()
 
 	expiredKeys := c.TTLH.RemoveHeapExpired(time.Now())
 
@@ -270,7 +269,9 @@ func (c *TTLLRUCacheShard) removeCacheExpired() (time.Duration, bool) {
 }
 
 func (c *TTLLRUCacheShard) startCleanupWorker() {
-	defer close(c.doneChan)
+	defer func() {
+		close(c.doneChan)
+	}()
 
 	timer := time.NewTimer(0)
 	if !timer.Stop() {
@@ -286,11 +287,16 @@ func (c *TTLLRUCacheShard) startCleanupWorker() {
 			timer.Stop()
 		}
 
+		var timerChan <-chan time.Time
+		if hasElements {
+			timerChan = timer.C
+		}
+
 		select {
 		case <-c.freezeChan:
 			return
 
-		case <-timer.C:
+		case <-timerChan:
 
 		case <-c.resetTimerChan:
 			if !timer.Stop() {

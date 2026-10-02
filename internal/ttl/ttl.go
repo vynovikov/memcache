@@ -29,6 +29,8 @@ func (h *Heap) ShiftUp(currentIndex int) {
 		}
 
 		h.Swap(currentIndex, parentIndex)
+		h.Nodes[currentIndex].HeapIndex = currentIndex
+		h.Nodes[parentIndex].HeapIndex = parentIndex
 
 		currentIndex = parentIndex
 	}
@@ -52,6 +54,8 @@ func (h *Heap) ShiftDown(currentIndex int) {
 		if smallestIndex != currentIndex {
 
 			h.Swap(currentIndex, smallestIndex)
+			h.Nodes[currentIndex].HeapIndex = currentIndex
+			h.Nodes[smallestIndex].HeapIndex = smallestIndex
 
 			currentIndex = smallestIndex
 
@@ -64,20 +68,20 @@ func (h *Heap) ShiftDown(currentIndex int) {
 
 func (h *Heap) Swap(i, j int) {
 	h.Nodes[i], h.Nodes[j] = h.Nodes[j], h.Nodes[i]
-
-	h.Nodes[i].HeapIndex = i
-	h.Nodes[j].HeapIndex = j
 }
 
 func (h *Heap) Remove(removeIndex int) {
 	heapLastIndex := len(h.Nodes) - 1
 
 	if removeIndex == heapLastIndex {
+		h.Nodes[removeIndex] = nil
 		h.Nodes = h.Nodes[:removeIndex]
 
 	} else {
 		h.Swap(removeIndex, heapLastIndex)
+		h.Nodes[heapLastIndex] = nil
 		h.Nodes = h.Nodes[:heapLastIndex]
+		h.Nodes[removeIndex].HeapIndex = removeIndex
 		h.ShiftUp(removeIndex)
 		h.ShiftDown(removeIndex)
 	}
@@ -89,11 +93,17 @@ func (h *Heap) Rebalance() {
 	for i := n/2 - 1; i >= 0; i-- {
 		h.ShiftDown(i)
 	}
+
+	for i := 0; i < n; i++ {
+		h.Nodes[i].HeapIndex = i
+	}
 }
 
 func (h *Heap) RemoveHeapExpired(now time.Time) []string {
 	expiredCount := 0
-	for expiredCount < len(h.Nodes) {
+	nodesLen := len(h.Nodes)
+
+	for expiredCount < nodesLen {
 		if h.Nodes[expiredCount].ExpireAt.After(now) {
 			break
 		}
@@ -107,14 +117,19 @@ func (h *Heap) RemoveHeapExpired(now time.Time) []string {
 	expiredKeys := make([]string, expiredCount)
 	for i := 0; i < expiredCount; i++ {
 		expiredKeys[i] = h.Nodes[i].Key
-		h.Nodes[i] = nil
+
+		lastIndex := nodesLen - 1 - i
+		if lastIndex < expiredCount {
+			h.Nodes[i] = nil
+			continue
+		}
+
+		h.Nodes[i] = h.Nodes[lastIndex]
+		h.Nodes[lastIndex] = nil
 	}
 
-	h.Nodes = h.Nodes[expiredCount:]
-
-	for i, node := range h.Nodes {
-		node.HeapIndex = i
-	}
+	h.Nodes = h.Nodes[:nodesLen-expiredCount]
+	h.Rebalance()
 
 	return expiredKeys
 }

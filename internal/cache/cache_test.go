@@ -861,7 +861,7 @@ func (s *cacheSuite) TestWork() {
 						},
 					},
 					LRULL: []string{"HEAD", "key01", "key00", "TAIL"},
-					TTLH:  []string{"key01", "key00"},
+					TTLH:  []string{"key00", "key01"},
 				},
 			},
 		},
@@ -1169,21 +1169,21 @@ func (c *TTLLRUCacheShard) getState() ([]keyValue, []string, []string) {
 	gotLRUL := []string{"HEAD"}
 	gotTTLH := make([]string, 0)
 	gotData := make([]keyValue, 0)
-	LRUNode := c.LRULL.Head
 
-	// 1. LRU linked list
+	LRUNode := c.LRULL.Head
+	lruCount := 0
 	for LRUNode.Next.Next != nil {
+		lruCount++
 		LRUNode = LRUNode.Next
+
 		gotLRUL = append(gotLRUL, LRUNode.Key)
 	}
 	gotLRUL = append(gotLRUL, "TAIL")
 
-	// 2. TTL heap
 	for _, TTLNode := range c.TTLH.Nodes {
 		gotTTLH = append(gotTTLH, TTLNode.Key)
 	}
 
-	// 3.0 Key-value-TTL slice
 	for gotKey, gotValue := range c.data {
 		gotData = append(gotData,
 			keyValue{
@@ -1193,7 +1193,6 @@ func (c *TTLLRUCacheShard) getState() ([]keyValue, []string, []string) {
 		)
 	}
 
-	// 3.1 Sorting slice
 	slices.SortFunc(gotData, func(a, b keyValue) int {
 		if a.Key < b.Key {
 			return -1
